@@ -7,6 +7,7 @@ client = Client()
 data = {
     'title': 'test task',
     'description': 'test description'
+    'due_at': timezone.now().isoformat()
 }
 response = client.post('/', data)
 
