@@ -3,6 +3,14 @@ from django.utils import timezone
 from datetime import datetime
 from todo.models import Task
 
+client = Client()
+data = {
+    'title': 'test task',
+    'description': 'test description',
+    'due_at': timezone.now().isoformat()  # 'due_at' を追加
+}
+response = client.post('/', data)
+
 # Create your tests here.
 class SampleTestCase(TestCase):
     def test_sample(self):
