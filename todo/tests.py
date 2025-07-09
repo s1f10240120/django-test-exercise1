@@ -3,6 +3,8 @@ from django.utils import timezone
 from datetime import datetime
 from todo.models import Task
 
+client = Client()
+response = client.post('/', data)
 
 
 # Create your tests here.
