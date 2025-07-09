@@ -1,92 +1,74 @@
 from django.test import TestCase, Client
 from django.utils import timezone
 from datetime import datetime
+from django.urls import reverse
 from todo.models import Task
 
-client = Client()
-data = {
-    'title': 'test task',
-    'description': 'test description',
-    'due_at': timezone.now().isoformat()  # 'due_at' を追加
-}
-response = client.post('/', data)
-
-# Create your tests here.
-class SampleTestCase(TestCase):
-    def test_sample(self):
-        # This is a sample test case
-        self.assertEqual(1 + 2, 3)
-    
 class TaskModelTestCase(TestCase):
-    def test_create_task(self):
-        due = timezone.make_aware(datetime(2024, 6, 30, 23 ,59, 59))
+    def test_create_task_with_due(self):
+        due = timezone.make_aware(datetime(2024, 6, 30, 23, 59, 59))
         task = Task(title='task1', due_at=due)
         task.save()
 
-        task = Task.objects.get(pk=task.pk)
-        self.assertEqual(task.title, 'task1')
-        self.assertFalse(task.completed)
-        self.assertEqual(task.due_at, due)
+        saved = Task.objects.get(pk=task.pk)
+        self.assertEqual(saved.title, 'task1')
+        self.assertFalse(saved.completed)
+        self.assertEqual(saved.due_at, due)
 
-def test_create_task2(self):
-    task = Task(title='task2')
-    task.save()
+    def test_create_task_without_due(self):
+        task = Task(title='task2')
+        task.save()
 
-    task = Task.objects.get(pk=task.pk)
-    self.assertEqual(task.title, 'task2')
-    self.assertFalse(task.completed)
-    self.assertEqual(task.due_at,None)
-
-class TaskModelTestCase(TestCase):
+        saved = Task.objects.get(pk=task.pk)
+        self.assertEqual(saved.title, 'task2')
+        self.assertFalse(saved.completed)
+        self.assertIsNone(saved.due_at)
 
     def test_is_overdue_future(self):
-        due = timezone.make_aware(datetime(2024, 6, 30, 23 ,59, 59))
-        current = timezone.make_aware(datetime(2024, 6, 30, 0 ,0, 0))
+        due = timezone.make_aware(datetime(2024, 6, 30, 23, 59, 59))
+        current = timezone.make_aware(datetime(2024, 6, 30, 0, 0, 0))
         task = Task(title='task1', due_at=due)
         task.save()
 
         self.assertFalse(task.is_overdue(current))
 
-def test_index_get(self):
-    client = Client()
-    response = client.get('/')
+class TaskViewTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
 
-    self.assertEqual(response.status_code, 200)
-    self.assertEqual(response.templates[0].name, 'todo/index.html')
-    self.assertEqual(len(response.context['tasks']), 0)
+    def test_index_get_empty(self):
+        response = self.client.get(reverse('index'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.templates[0].name, 'todo/index.html')
+        self.assertEqual(len(response.context['tasks']), 0)
 
-def test_index_post(self):
-    client = Client()
-    date = {'title': 'Test Task', 'due_at': '2024-06-30 23:59:59'}
-    response = client.post('/', data)
+    def test_index_post_creates_task(self):
+        data = {
+            'title': 'Test Task',
+            'description': 'test description',
+            'due_at': datetime(2025, 7, 9, 12, 0, 0).isoformat()
+        }
+        response = self.client.post(reverse('index'), data)
+        self.assertIn(response.status_code, (200, 302))
+        self.assertEqual(Task.objects.count(), 1)
+        self.assertEqual(response.templates[0].name, 'todo/index.html')
 
-    self.assertEqual(response.status_code, 200)
-    self.assertEqual(response.templates[0].name, 'todo/index.html')
-    self.assertEqual(len(response.context['tasks']), 1)
+    def test_index_get_order_posted_desc(self):
+        older = Task(title='older', due_at=timezone.now())
+        older.save()
+        newer = Task(title='newer', due_at=timezone.now())
+        newer.save()
 
-def test_index_get_order_post(self):
-    task1 = Task(title='Task 1', due_at=timezone.make_aware(datetime(2024, 7, 1)))
-    task1.save()
-    task2 = Task(title='Task 2', due_at=timezone.make_aware(datetime(2024, 8, 1)))
-    task2.save()
-    client = Client()
-    response = client.get('/?order=post')
+        response = self.client.get(reverse('index'))
+        self.assertEqual(response.context['tasks'][0], newer)
+        self.assertEqual(response.context['tasks'][1], older)
 
-    self.assertEqual(response.status_code, 200)
-    self.assertEqual(response.templates[0].name, 'todo/index.html')
-    self.assertEqual(response.context['tasks'][0],task2)
-    self.assertEqual(response.context['tasks'][1],task1)
+    def test_index_get_order_due_asc(self):
+        first = Task(title='first', due_at=timezone.make_aware(datetime(2024, 7, 1)))
+        first.save()
+        second = Task(title='second', due_at=timezone.make_aware(datetime(2024, 8, 1)))
+        second.save()
 
-def test_index_get_order_due(self):
-    task1 = Task(title='Task 1', due_at=timezone.make_aware(datetime(2024, 7, 1)))
-    task1.save()
-    task2 = Task(title='Task 2', due_at=timezone.make_aware(datetime(2024, 8, 1)))
-    task2.save()
-    client = Client()
-    response = client.get('/?order=due')
-
-    self.assertEqual(response.status_code, 200)
-    self.assertEqual(response.templates[0].name, 'todo/index.html')
-    self.assertEqual(response.context['tasks'][0],task1)
-    self.assertEqual(response.context['tasks'][1],task2)
-
+        response = self.client.get(reverse('index') + '?order=due')
+        self.assertEqual(response.context['tasks'][0], first)
+        self.assertEqual(response.context['tasks'][1], second)
