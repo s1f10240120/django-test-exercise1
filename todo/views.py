@@ -1,11 +1,12 @@
 # todo/views.py
 
 from django.shortcuts import render
-from django.utils.timezone import make_aware, is_naive
 from django.utils.dateparse import parse_datetime
+from django.utils.timezone import is_naive, make_aware
 from todo.models import Task
 
 def index(request):
+    # POSTリクエストで新しいタスクを作成
     if request.method == 'POST':
         raw_due_at = parse_datetime(request.POST['due_at'])
         if is_naive(raw_due_at):
@@ -15,11 +16,11 @@ def index(request):
 
         task = Task(
             title=request.POST['title'],
-            description=request.POST.get('description', ''),
             due_at=due_at
         )
         task.save()
 
+    # 並び順を GET パラメータで切り替え
     if request.GET.get('order') == 'due':
         tasks = Task.objects.order_by('due_at')
     else:
