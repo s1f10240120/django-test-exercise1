@@ -3,6 +3,15 @@ from django.utils.timezone import make_aware
 from django.utils.dateparse import parse_datetime
 from todo.models import Task
 
+from django.utils.timezone import is_naive, make_aware
+from django.utils.dateparse import parse_datetime
+
+dt = parse_datetime(request.POST['due_at'])
+if is_naive(dt):
+    dt = make_aware(dt)
+
+due_at = dt
+
 # Create your views here.
 def index(request):
     if request.method == 'POST':
