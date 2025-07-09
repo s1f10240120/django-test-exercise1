@@ -4,8 +4,11 @@ from datetime import datetime
 from todo.models import Task
 
 client = Client()
+data = {
+    'title': 'test task',
+    'description': 'test description'
+}
 response = client.post('/', data)
-
 
 # Create your tests here.
 class SampleTestCase(TestCase):
@@ -86,8 +89,3 @@ def test_index_get_order_due(self):
     self.assertEqual(response.context['tasks'][0],task1)
     self.assertEqual(response.context['tasks'][1],task2)
 
-data = {
-    'title': 'test task',
-    'description': 'test description'
-}
-response = client.post('/', data)
